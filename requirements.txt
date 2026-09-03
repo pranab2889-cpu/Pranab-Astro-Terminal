@@ -1,0 +1,7 @@
+Flask==3.0.0
+flask-cors==4.0.0
+yfinance==0.2.33
+pandas==2.1.4
+pyswisseph==2.10.3.2
+pytz
+gunicorn

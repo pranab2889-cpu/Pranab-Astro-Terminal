@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>PRANAB ASTRO TERMINAL</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #05070a; color: #e0e0e0; padding: 5px; display: flex; justify-content: center; align-items: flex-start; font-size: 12px; margin: 0; transition: background 0.3s; overflow-x: hidden;}
+        #zoomWrapper { transform: scale(1); transform-origin: top center; transition: transform 0.2s ease; width: 100%; display: flex; justify-content: center; }
+        .card { background: #121822; border: 1px solid #2d3a54; padding: 12px 15px; border-radius: 10px; width: 700px; box-shadow: 0 6px 25px rgba(0,0,0,0.9); margin-top: 10px; }
+        
+        .top-ctrl { padding: 6px; border-radius: 4px; background: linear-gradient(145deg, #151b26, #0b0f15); border: 1px solid #4a5568; color: #fff; outline: none; font-size: 12px; cursor: pointer; font-weight: bold; box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);}
+        select option, select optgroup { background-color: #121822; color: #ffffff; font-weight: bold; }
+        
+        .zoom-btn { background: linear-gradient(145deg, #263238, #1c252a); color: #fff; border: 1px solid #455a64; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.8); text-shadow: 1px 1px 2px #000;}
+        .zoom-btn:hover { background: #37474f; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #1a2333; padding-bottom: 4px; font-size: 12px;}
+        
+        .deep-cyan { color: #00bfa5; text-shadow: 1px 2px 3px rgba(0,0,0,0.9); } 
+        .deep-blue { color: #29b6f6; text-shadow: 1px 2px 3px rgba(0,0,0,0.9); } 
+        .deep-purple { color: #d500f9; text-shadow: 1px 2px 3px rgba(0,0,0,0.9); } 
+        #lagnaSL, #moonSL { color: #ff8f00; font-weight: bold; text-shadow: 1px 2px 3px rgba(0,0,0,0.9); } 
+        #lagnaNL, #moonNL { color: #1e88e5; font-weight: bold; text-shadow: 1px 2px 3px rgba(0,0,0,0.9); } 
+        #livePrice { font-size: 24px; font-weight: bold; color: #ffffff; text-shadow: 2px 3px 5px rgba(0,0,0,0.9); margin-bottom: 2px; letter-spacing: 1px; }
+        #timeLeft { color: #d50000; font-weight: bold; font-size: 13px; text-shadow: 1px 2px 3px rgba(0,0,0,0.9); }
+        
+        .badge { padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin: 8px 0; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 4px 12px rgba(0,0,0,0.7);}
+        
+        .super-buy { animation: glowSuperBuy 0.8s infinite alternate; background: linear-gradient(90deg, #00b0ff, #00e676); color: #fff; border: 2px solid #18ffff; text-shadow: 1px 2px 3px #000; font-size: 19px !important; letter-spacing: 2px;}
+        @keyframes glowSuperBuy { 0% { box-shadow: 0 0 10px #00e676; } 100% { box-shadow: 0 0 30px #18ffff, 0 0 10px #fff; } }
+        
+        .panic-sell { animation: glowPanicSell 0.4s infinite alternate; background: linear-gradient(90deg, #d50000, #ff1744); color: #fff; border: 2px solid #ff8a80; text-shadow: 1px 2px 3px #000; font-size: 19px !important; letter-spacing: 2px;}
+        @keyframes glowPanicSell { 0% { box-shadow: 0 0 10px #d50000; } 100% { box-shadow: 0 0 40px #ff1744, 0 0 15px #fff; } }
+
+        .warning-exit { animation: pulseWarning 1s infinite; background: linear-gradient(90deg, #d84315, #ff6f00); color: #fff; border: 2px solid #ff8f00; text-shadow: 1px 2px 3px #000; font-size: 18px !important;}
+        @keyframes pulseWarning { 0% { box-shadow: 0 0 0 0 rgba(255,111,0, 0.8); } 70% { box-shadow: 0 0 0 10px rgba(255,111,0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255,111,0, 0); } }
+        .flash-exit { animation: flashAlert 0.7s infinite; background: linear-gradient(90deg, #b71c1c, #d50000); color: #fff; border: 2px solid #ff1744; text-shadow: 1px 2px 3px #000; font-size: 18px !important; box-shadow: 0 0 15px #d50000;}
+        @keyframes flashAlert { 0% { opacity: 1; } 50% { opacity: 0.6; transform: scale(0.98); } 100% { opacity: 1; } }
+
+        .progress-bg { background: #07090c; border-radius: 4px; height: 6px; width: 100%; margin-top: 2px; border: 1px solid #1a2333;}
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #00897b, #43a047); width: 0%; transition: width 3s linear; box-shadow: 0 2px 4px rgba(0,0,0,0.8);}
+        .section-title { font-size: 12px; font-weight: bold; margin: 4px 0; text-transform: uppercase; border-bottom: 1px dashed #2d3a54; padding-bottom: 2px;}
+        
+        .flex-row { display: flex; gap: 12px; margin-bottom: 8px; align-items: stretch;}
+        .grid-item { flex: 1; background: #0b0e14; padding: 10px; border-radius: 8px; border: 1px solid #1a2333; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);}
+        .price-box { background: linear-gradient(145deg, #07090c, #040508); border: 1px solid #e65100; padding: 12px; border-radius: 8px; text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; box-shadow: inset 0 2px 8px rgba(230,81,0,0.2);}
+        .checklist-box { background: linear-gradient(145deg, #07090c, #040508); border-radius: 8px; border: 1px dashed #1e88e5; padding: 10px; flex: 1.2; display: flex; flex-direction: column; justify-content: center;}
+        
+        .ai-memory-box { background: linear-gradient(90deg, #1a233a, #0b0f15); border-left: 4px solid #ba68c8; padding: 8px; border-radius: 6px; margin-bottom: 8px; font-size: 11px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.5); font-weight: bold; letter-spacing: 0.5px;}
+        
+        .action-radar { background: #0b0e14; padding: 10px; border-radius: 8px; margin-top: 8px; border-left: 4px solid #00c853; border-right: 4px solid #d50000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);}
+        .signal-box { background: #05070a; padding: 6px; border-radius: 6px; border: 1px solid #1a2333; flex: 1; text-align: center; font-size: 11px;}
+        .vol-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: linear-gradient(45deg, #263238, #1c252a); border: 1px solid #455a64; display: inline-block; text-shadow: 1px 1px 2px #000;}
+    </style>
+</head>
+<body>
+
+<div id="zoomWrapper">
+    <div class="card" id="mainCard">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; gap: 5px;">
+                <button class="zoom-btn" onclick="zoomIn()">A+</button>
+                <button class="zoom-btn" onclick="zoomOut()">A-</button>
+            </div>
+            <h2 class="deep-cyan" style="margin: 0; font-size: 16px; letter-spacing: 1px; text-transform: uppercase;">PRANAB ASTRO TERMINAL</h2>
+            <div style="width: 70px;"></div> 
+        </div>
+        
+        <div class="flex-row">
+            <button id="audioBtn" class="top-ctrl" onclick="enableAudio()" style="background: linear-gradient(145deg, #f57f17, #f9a825); color: #000; flex: 1; text-shadow: none;">🔊 Alerts OFF</button>
+            <select id="modeSelect" class="top-ctrl" style="flex: 1.5;">
+                <option value="both">🎯 Lagna + Moon</option>
+                <option value="lagna">⚡ Scalp (Only Lagna)</option>
+                <option value="moon">🌙 Scalp (Only Moon)</option>
+            </select>
+            <select id="marketSelect" class="top-ctrl" style="flex: 2;">
+                <optgroup label="Indian Indices">
+                    <option value="BANKNIFTY">🏦 Bank Nifty</option>
+                    <option value="NIFTY">📈 Nifty 50</option>
+                    <option value="FINNIFTY">📊 Fin Nifty</option>
+                </optgroup>
+                <optgroup label="Commodities">
+                    <option value="CRUDE">🛢️ Crude Oil (WTI)</option>
+                    <option value="GOLD">🥇 Gold</option>
+                    <option value="NATGAS">🔥 Natural Gas</option>
+                    <option value="SILVER">🥈 Silver</option>
+                </optgroup>
+                <optgroup label="Indian Stocks">
+                    <option value="RELIANCE">🏭 Reliance</option>
+                    <option value="HDFCBANK">🏦 HDFC Bank</option>
+                    <option value="SBI">🏛️ SBI</option>
+                </optgroup>
+                <optgroup label="Forex">
+                    <option value="EURUSD">💱 EUR/USD</option>
+                    <option value="GBPUSD">💷 GBP/USD</option>
+                    <option value="USDINR">💵 USD/INR</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <div id="badge" class="badge neutral">Connecting...</div>
+        
+        <div class="flex-row">
+            <div class="price-box">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin-bottom: 6px;">
+                    <div style="text-align: left;">
+                        <div style="color: #b0bec5; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000;">LIVE DATA (<span id="symbolName" style="color:#fff;">-</span>)</div>
+                        <div style="color: #42a5f5; font-size: 10px; font-style: italic;">🌍 <span id="marketLocation">Location...</span></div>
+                    </div>
+                    <div id="volBadge" class="vol-badge">VOL: -</div>
+                </div>
+                <div id="livePrice">0.00</div>
+                <div style="font-size: 12px; font-weight: bold;" id="liveTrend">-</div>
+            </div>
+            <div class="checklist-box">
+                <div style="color: #b0bec5; font-size: 11px; margin-bottom: 8px; text-align: center; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; text-shadow: 1px 1px 2px #000;">⚙️ Live Check-List</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; font-weight: bold;">
+                    <span id="chkAstro">🪐 Astro: -</span>
+                    <span id="chkTech">📈 Tech: -</span>
+                    <span id="chkBias">⚖️ Bias: -</span>
+                    <span id="chkVol">📊 Vol: -</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="aiMemory" class="ai-memory-box">
+            <span style="color: #ba68c8; text-shadow: 0 0 5px #ba68c8;">🧠 AI HISTORY:</span> 
+            <span id="histText" style="color: #e0e0e0; margin-left: 5px;">অতীতের ডাটা স্ক্যান করা হচ্ছে...</span>
+        </div>
+
+        <div class="flex-row" style="margin-bottom: 5px;">
+            <div class="grid-item">
+                <div class="section-title deep-blue">🌟 LAGNA (Micro Entry)</div>
+                <div class="data-row"><span>NL:</span> <span id="lagnaNL">-</span></div>
+                <div class="data-row"><span>Signifies:</span> <span id="lagnaNLHouses" style="color: #00e676; font-weight:bold; text-shadow: 1px 1px 2px #000;">-</span></div>
+                <div class="data-row"><span>SL:</span> <span id="lagnaSL">-</span></div>
+                <div class="data-row" style="border:none;"><span>Signifies:</span> <span id="lagnaSLHouses" style="color: #1de9b6; font-weight:bold; text-shadow: 1px 1px 2px #000;">-</span></div>
+            </div>
+            <div class="grid-item">
+                <div class="section-title deep-purple">🌙 MOON (Macro Trend)</div>
+                <div class="data-row"><span>NL:</span> <span id="moonNL">-</span></div>
+                <div class="data-row"><span>Signifies:</span> <span id="moonNLHouses" style="color: #00e676; font-weight:bold; text-shadow: 1px 1px 2px #000;">-</span></div>
+                <div class="data-row"><span>SL:</span> <span id="moonSL">-</span></div>
+                <div class="data-row" style="border:none;"><span>Signifies:</span> <span id="moonSLHouses" style="color: #1de9b6; font-weight:bold; text-shadow: 1px 1px 2px #000;">-</span></div>
+            </div>
+        </div>
+
+        <div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
+                <span style="color:#b0bec5; font-weight: bold;">SL Remaining Time:</span>
+                <span id="timeLeft">-</span>
+            </div>
+            <div class="progress-bg"><div id="progressBar" class="progress-bar"></div></div>
+        </div>
+        <div class="action-radar">
+            <div style="color: #b0bec5; font-size: 11px; margin-bottom: 8px; text-align: center; letter-spacing: 1px; font-weight:bold; text-shadow: 1px 1px 2px #000;">⏳ পরবর্তী ৩টি সিগন্যালের শিডিউল</div>
+            <div id="futureSignals" style="display: flex; justify-content: space-between; gap: 10px;"></div>
+        </div>
+        <div id="statusArea" style="text-align: center; margin-top: 8px; font-size: 11px; font-weight: bold;">
+            <span id="status" style="color: red;">🔴 Offline</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentZoom = 1;
+    function zoomIn() { currentZoom += 0.05; if(currentZoom > 1.5) currentZoom = 1.5; document.getElementById('zoomWrapper').style.transform = `scale(${currentZoom})`; }
+    function zoomOut() { currentZoom -= 0.05; if(currentZoom < 0.6) currentZoom = 0.6; document.getElementById('zoomWrapper').style.transform = `scale(${currentZoom})`; }
+
+    let currentSignal = "";
+    let audioCtx = null;
+
+    function enableAudio() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const btn = document.getElementById('audioBtn');
+        btn.innerText = "✅ Alerts ON";
+        btn.style.background = "linear-gradient(145deg, #1b5e20, #004d40)";
+        btn.style.color = "#fff";
+        btn.style.textShadow = "1px 1px 2px #000";
+        if (Notification.permission !== "granted") Notification.requestPermission();
+    }
+
+    function playBeep(signalType) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if(signalType === 'super-buy') { osc.frequency.value = 1200; osc.type = 'square'; } 
+        else if(signalType === 'panic-sell') { osc.frequency.value = 100; osc.type = 'sawtooth'; } 
+        else if(signalType === 'buy' || signalType === 'warning-exit') { osc.frequency.value = 850; osc.type = 'square'; } 
+        else if(signalType === 'sell') { osc.frequency.value = 250; osc.type = 'sawtooth'; }
+        else if(signalType === 'flash-exit') { osc.frequency.value = 150; osc.type = 'sawtooth'; } 
+        else { osc.frequency.value = 500; osc.type = 'sine'; }
+        
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (signalType.includes('super') || signalType.includes('panic') ? 1.5 : 1));
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 2);
+    }
+
+    function showNotification(title, body) {
+        if (Notification.permission === "granted") new Notification(title, { body: body });
+    }
+
+    async function fetchAstro() {
+        const market = document.getElementById('marketSelect').value;
+        const mode = document.getElementById('modeSelect').value;
+        let isStrict = (mode === 'both'); 
+
+        try {
+            // Updated Fetch URL for Cloud Deployment
+            const res = await fetch(`/api/live_kp?market=${market}`);
+            const data = await res.json();
+            
+            document.getElementById('status').innerHTML = `<span style="color: #00c853; text-shadow: 1px 1px 2px #000;">🟢 ${data.status}</span>`;
+            document.getElementById('lagnaNL').innerText = data.lagna_nl;
+            document.getElementById('lagnaNLHouses').innerText = data.lagna_nl_h + " (" + data.lagna_nl_s + ")";
+            document.getElementById('lagnaSL').innerText = data.lagna_sl;
+            document.getElementById('lagnaSLHouses').innerText = data.lagna_sl_h + " (" + data.lagna_sl_s + ")";
+            document.getElementById('moonNL').innerText = data.moon_nl;
+            document.getElementById('moonNLHouses').innerText = data.moon_nl_h + " (" + data.moon_nl_s + ")";
+            document.getElementById('moonSL').innerText = data.moon_sl;
+            document.getElementById('moonSLHouses').innerText = data.moon_sl_h + " (" + data.moon_sl_s + ")";
+            document.getElementById('timeLeft').innerText = data.time_left;
+            document.getElementById('progressBar').style.width = data.progress + "%";
+            
+            const histEl = document.getElementById('histText');
+            if(data.hist_text) {
+                histEl.innerHTML = data.hist_text;
+                histEl.style.color = data.hist_text.includes("UPTREND") ? "#00e676" : (data.hist_text.includes("DOWNTREND") ? "#ff1744" : "#ffb300");
+            } else {
+                histEl.innerText = "Python ব্যাকএন্ড আপডেটের অপেক্ষায়...";
+                histEl.style.color = "#90a4ae";
+            }
+            
+            const futureContainer = document.getElementById('futureSignals');
+            futureContainer.innerHTML = "";
+            if (data.upcoming_actions && data.upcoming_actions.length > 0) {
+                data.upcoming_actions.forEach(action => {
+                    let color = action.signal === 'BUY' ? '#00e676' : '#ff1744';
+                    let icon = action.signal === 'BUY' ? '🚀' : '⚠️';
+                    let exactLocalTime = new Date(action.exact_time_utc).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    futureContainer.innerHTML += `
+                        <div class="signal-box">
+                            <span style="color: ${color}; font-weight:bold; font-size:13px; text-shadow: 1px 2px 3px rgba(0,0,0,0.9);">${icon} ${action.signal}</span><br>
+                            <span style="color: #64b5f6; font-size: 11px;">${action.sl}</span> | <span style="color: #e0e0e0;">⏰ ${exactLocalTime}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            document.getElementById('symbolName').innerText = data.symbol;
+            document.getElementById('marketLocation').innerText = data.location;
+            document.getElementById('livePrice').innerText = data.price;
+            
+            const volBadge = document.getElementById('volBadge');
+            if (data.vol_surge) {
+                volBadge.innerHTML = `🔥 VOL: ${data.vol_text}`;
+                volBadge.style.background = "linear-gradient(45deg, #e65100, #dd2c00)";
+                volBadge.style.color = "#fff";
+                volBadge.style.border = "1px solid #ff6d00";
+            } else {
+                volBadge.innerHTML = `🧊 VOL: ${data.vol_text}`;
+                volBadge.style.background = "linear-gradient(45deg, #263238, #1c252a)";
+                volBadge.style.color = "#90a4ae";
+                volBadge.style.border = "1px solid #455a64";
+            }
+
+            const trendEl = document.getElementById('liveTrend');
+            trendEl.innerText = data.price_trend;
+            let techColor = data.price_trend.includes("UPTREND") ? "#00c853" : (data.price_trend.includes("DOWNTREND") ? "#d50000" : "#ff8f00");
+            trendEl.style.color = techColor;
+            trendEl.style.textShadow = `1px 2px 3px rgba(0,0,0,0.9)`;
+
+            let signalsArray = [data.lagna_nl_s, data.lagna_sl_s, data.moon_nl_s, data.moon_sl_s];
+            let buyCount = signalsArray.filter(x => x === 'BUY').length;
+            let sellCount = signalsArray.filter(x => x === 'SELL').length;
+            
+            let isSuperBuy = (buyCount >= 3);
+            let isPanicSell = (sellCount >= 3);
+
+            let astroBuy = false;
+            let astroSell = false;
+
+            if (mode === 'both') {
+                astroBuy = (data.lagna_sl_s === "BUY" && data.moon_sl_s === "BUY");
+                astroSell = (data.lagna_sl_s === "SELL" && data.moon_sl_s === "SELL");
+            } else if (mode === 'lagna') {
+                astroBuy = (data.lagna_sl_s === "BUY");
+                astroSell = (data.lagna_sl_s === "SELL");
+            } else if (mode === 'moon') {
+                astroBuy = (data.moon_sl_s === "BUY");
+                astroSell = (data.moon_sl_s === "SELL");
+            }
+
+            let astroColor = astroBuy ? '#00c853' : (astroSell ? '#d50000' : '#ff8f00');
+            let astroStatus = astroBuy ? "BUY" : (astroSell ? "SELL" : "NEUTRAL");
+            
+            if(isSuperBuy) { astroColor = '#18ffff'; astroStatus = "SUPER BUY"; }
+            if(isPanicSell) { astroColor = '#ff1744'; astroStatus = "PANIC SELL"; }
+
+            document.getElementById('chkAstro').innerHTML = `🪐 Astro: <span style="color: ${astroColor}; text-shadow: 1px 2px 3px rgba(0,0,0,0.9);">${astroStatus}</span>`;
+            document.getElementById('chkTech').innerHTML = `📈 Tech: <span style="color: ${techColor}; text-shadow: 1px 2px 3px rgba(0,0,0,0.9);">${data.price_trend.replace('STRONG ', '')}</span>`;
+            document.getElementById('chkBias').innerHTML = `⚖️ Bias: <span style="color: ${data.bias_color}; text-shadow: 1px 2px 3px rgba(0,0,0,0.9);">${data.bias_text.split(' ')[0]}</span>`;
+            
+            let volStatus = data.vol_surge ? "PASS" : (data.vol_text === "N/A" ? "N/A" : "WAIT");
+            let volColor = data.vol_surge ? "#00c853" : (data.vol_text === "N/A" ? "#90a4ae" : "#ff8f00");
+            document.getElementById('chkVol').innerHTML = `📊 Vol: <span style="color: ${volColor}; text-shadow: 1px 2px 3px rgba(0,0,0,0.9);">${volStatus}</span>`;
+
+            let signalId = "neutral";
+            let displayString = "📊 WAIT (Neutral Zone)";
+            let mainBg = "linear-gradient(90deg, #263238, #1c252a)";
+            let mainBorder = "2px solid #455a64";
+
+            if (isSuperBuy) {
+                signalId = "super-buy"; 
+                displayString = "💎 SUPER BUY (ASTRO DOMINANCE)";
+            } 
+            else if (isPanicSell) {
+                signalId = "panic-sell"; 
+                displayString = "💣 PANIC SELL (ASTRO DOMINANCE)";
+            }
+            else if (astroBuy && (data.price_trend === "STRONG UPTREND" || data.price_trend === "UPTREND")) {
+                if (data.trade_permission === "SELL_ONLY") {
+                    signalId = "no-trade"; displayString = "🛑 TRADE BLOCKED (Bias BEARISH)";
+                } else if (isStrict && !data.vol_surge) {
+                    signalId = "no-trade"; displayString = "⏳ WAITING FOR VOLUME SURGE";
+                } else if (data.time_left_seconds <= 120 && data.time_left_seconds > 0) {
+                    signalId = "warning-exit"; displayString = "⚠️ 2 MINS LEFT - BOOK PROFIT NOW!";
+                } else {
+                    signalId = "buy"; displayString = isStrict ? "🚀 PERFECT BUY ENTRY" : "⚡ SCALP BUY ENTRY";
+                    mainBg = "linear-gradient(90deg, #1b5e20, #004d40)"; mainBorder = "2px solid #00c853";
+                }
+            } 
+            else if (astroSell && (data.price_trend === "STRONG DOWNTREND" || data.price_trend === "DOWNTREND")) {
+                if (data.trade_permission === "BUY_ONLY") {
+                    signalId = "no-trade"; displayString = "🛑 TRADE BLOCKED (Bias BULLISH)";
+                } else if (isStrict && !data.vol_surge) {
+                    signalId = "no-trade"; displayString = "⏳ WAITING FOR VOLUME SURGE";
+                } else if (data.time_left_seconds <= 120 && data.time_left_seconds > 0) {
+                    signalId = "warning-exit"; displayString = "⚠️ 2 MINS LEFT - BOOK PROFIT NOW!";
+                } else {
+                    signalId = "sell"; displayString = isStrict ? "⚠️ PERFECT SELL ENTRY" : "⚡ SCALP SELL ENTRY";
+                    mainBg = "linear-gradient(90deg, #b71c1c, #880e4f)"; mainBorder = "2px solid #d50000";
+                }
+            } 
+            else if ((astroBuy && data.price_trend.includes("DOWNTREND")) || (astroSell && data.price_trend.includes("UPTREND"))) {
+                signalId = "flash-exit"; 
+                displayString = "🚨 EMERGENCY EXIT (SUDDEN REVERSAL)";
+            }
+            else {
+                signalId = "no-trade"; 
+                displayString = "🛑 NO TRADE (WAITING FOR SETUP)";
+                mainBg = "linear-gradient(90deg, #263238, #1c252a)";
+                mainBorder = "2px solid #455a64";
+            }
+
+            const b = document.getElementById('badge');
+            b.className = "badge " + signalId;
+            b.innerText = displayString;
+            
+            if(signalId !== "warning-exit" && signalId !== "flash-exit" && signalId !== "super-buy" && signalId !== "panic-sell") {
+                b.style.background = mainBg;
+                b.style.border = mainBorder;
+                b.style.textShadow = "1px 2px 3px rgba(0,0,0,0.9)";
+            } else {
+                b.style.background = ""; 
+                b.style.border = "";
+            }
+
+            if(currentSignal !== signalId) {
+                if(signalId.includes('buy') || signalId.includes('sell') || signalId.includes('exit')) {
+                    playBeep(signalId);
+                    showNotification(displayString, `Live Price: ${data.price}`);
+                }
+            }
+            currentSignal = signalId;
+
+        } catch (e) {
+            document.getElementById('status').innerHTML = '<span style="color: #d50000; text-shadow: 1px 1px 2px #000;">🔴 Offline / Connection Error</span>';
+        }
+    }
+
+    setInterval(fetchAstro, 3000);
+</script>
+</body>
+</html>
