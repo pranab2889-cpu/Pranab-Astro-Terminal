@@ -5,13 +5,13 @@ import pandas as pd
 from datetime import datetime
 import pytz
 import swisseph as swe
-import requests # নতুন যোগ করা হয়েছে ইয়াহুর ব্লক এড়ানোর জন্য
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 1. KP ASTROLOGY 
+# 1. KP ASTROLOGY (DYNAMIC TIMER ADDED)
 # ==========================================
 swe.set_sid_mode(swe.SIDM_KRISHNAMURTI)
 
@@ -28,15 +28,22 @@ def get_kp_lords(longitude):
     current_sl_idx = nl_idx
     passed_deg = 0.0
     
+    sl = lords[current_sl_idx]
+    sl_progress = 0
+    deg_remaining = 0
+    
     for _ in range(9):
         sl_share = (dasha_years[current_sl_idx] / 120.0) * nak_length
         if passed_deg + sl_share >= deg_in_nak:
             sl = lords[current_sl_idx]
+            deg_used = deg_in_nak - passed_deg
+            sl_progress = int((deg_used / sl_share) * 100) # কতটা সাব-লর্ড পেরিয়েছে তার %
+            deg_remaining = sl_share - deg_used # কত ডিগ্রি বাকি আছে
             break
         passed_deg += sl_share
         current_sl_idx = (current_sl_idx + 1) % 9
         
-    return nl, sl
+    return nl, sl, sl_progress, deg_remaining
 
 def get_market_location(market):
     locations = {
@@ -53,14 +60,12 @@ def get_realtime_astro(lat, lon):
     flags = swe.FLG_SIDEREAL | swe.FLG_SPEED
 
     moon_pos, _ = swe.calc_ut(jd_utc, swe.MOON, flags)
-    moon_long = moon_pos[0]
-    moon_nl, moon_sl = get_kp_lords(moon_long)
+    moon_nl, moon_sl, _, _ = get_kp_lords(moon_pos[0])
 
     cusps, ascmc = swe.houses_ex(jd_utc, lat, lon, b'P', flags)
-    lagna_long = ascmc[0]
-    lagna_nl, lagna_sl = get_kp_lords(lagna_long)
+    lagna_nl, lagna_sl, lagna_prog, lagna_rem = get_kp_lords(ascmc[0])
 
-    return lagna_nl, lagna_sl, moon_nl, moon_sl
+    return lagna_nl, lagna_sl, moon_nl, moon_sl, lagna_prog, lagna_rem
 
 # ==========================================
 # 2. TECHNICAL DATA FETCH
@@ -74,13 +79,11 @@ def get_market_symbol(market):
 
 def get_technical_data(symbol):
     try:
-        # ইয়াহুর ব্লক এড়ানোর জন্য ব্রাউজারের ছদ্মবেশ (User-Agent) তৈরি করা হলো
         session = requests.Session()
         session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         })
         
-        # Ticker কল করার সময় session পাস করে দেওয়া হলো
         data = yf.download(symbol, period="2d", interval="5m", progress=False, session=session)
         
         if data is None or data.empty:
@@ -117,7 +120,6 @@ def get_technical_data(symbol):
 # ==========================================
 @app.route('/')
 def home():
-    # এটি আপনার index.html কে মোবাইলের ব্রাউজারে রেন্ডার করবে
     return render_template('index.html')
 
 @app.route('/api/live_kp', methods=['GET'])
@@ -128,7 +130,7 @@ def live_kp():
         location = get_market_location(market)
         
         price, price_trend, vol_surge, vol_text = get_technical_data(symbol)
-        lagna_nl, lagna_sl, moon_nl, moon_sl = get_realtime_astro(location['lat'], location['lon'])
+        lagna_nl, lagna_sl, moon_nl, moon_sl, lagna_prog, lagna_rem = get_realtime_astro(location['lat'], location['lon'])
         
         moon_nl_s = "BUY" if moon_nl in ["Jupiter", "Venus", "Moon"] else "SELL"
         moon_sl_s = "BUY" if moon_sl in ["Jupiter", "Venus", "Moon"] else "SELL"
@@ -151,6 +153,12 @@ def live_kp():
         bias_text = "EXTREME BEARISH" if lagna_sl_s == "SELL" and moon_sl_s == "SELL" else "NEUTRAL"
         bias_color = "#ff1744" if "BEARISH" in bias_text else ("#00e676" if "BULLISH" in bias_text else "#ffb300")
         
+        # ডায়নামিক টাইম ক্যালকুলেশন (লগ্ন ১ ডিগ্রি ঘোরে ৪ মিনিটে)
+        time_left_secs = int(lagna_rem * 240) 
+        mins = time_left_secs // 60
+        secs = time_left_secs % 60
+        time_left_str = f"{mins:02d}m {secs:02d}s"
+        
         return jsonify({
             "status": "LIVE",
             "symbol": symbol,
@@ -165,9 +173,9 @@ def live_kp():
             "moon_nl": moon_nl, "moon_nl_h": "2, 6, 11" if moon_nl_s == "BUY" else "5, 8, 12", "moon_nl_s": moon_nl_s,
             "moon_sl": moon_sl, "moon_sl_h": "2, 6, 11" if moon_sl_s == "BUY" else "5, 8, 12", "moon_sl_s": moon_sl_s,
             
-            "time_left": "04m 12s",
-            "time_left_seconds": 252,
-            "progress": 70,
+            "time_left": time_left_str,
+            "time_left_seconds": time_left_secs,
+            "progress": lagna_prog,
             
             "bias_text": bias_text,
             "bias_color": bias_color,
