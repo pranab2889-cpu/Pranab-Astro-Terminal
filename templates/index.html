@@ -209,7 +209,6 @@
         let isStrict = (mode === 'both'); 
 
         try {
-            // Updated Fetch URL for Cloud Deployment
             const res = await fetch(`/api/live_kp?market=${market}`);
             const data = await res.json();
             
@@ -230,7 +229,7 @@
                 histEl.innerHTML = data.hist_text;
                 histEl.style.color = data.hist_text.includes("UPTREND") ? "#00e676" : (data.hist_text.includes("DOWNTREND") ? "#ff1744" : "#ffb300");
             } else {
-                histEl.innerText = "Python ব্যাকএন্ড আপডেটের অপেক্ষায়...";
+                histEl.innerText = "Python ব্যাকএন্ড আপডেটের অপেক্ষায়...";
                 histEl.style.color = "#90a4ae";
             }
             
@@ -240,7 +239,10 @@
                 data.upcoming_actions.forEach(action => {
                     let color = action.signal === 'BUY' ? '#00e676' : '#ff1744';
                     let icon = action.signal === 'BUY' ? '🚀' : '⚠️';
-                    let exactLocalTime = new Date(action.exact_time_utc).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    // এখানে লোকাল টাইমের বদলে মার্কেট টাইম (Backend থেকে আসা) বসানো হলো
+                    let exactLocalTime = action.market_time || action.exact_time_utc; 
+                    
                     futureContainer.innerHTML += `
                         <div class="signal-box">
                             <span style="color: ${color}; font-weight:bold; font-size:13px; text-shadow: 1px 2px 3px rgba(0,0,0,0.9);">${icon} ${action.signal}</span><br>

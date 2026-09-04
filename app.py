@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import yfinance as yf
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
+import time
 import pytz
 import swisseph as swe
 import requests
@@ -11,11 +12,11 @@ app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 1. KP ASTROLOGY (DYNAMIC TIMER ADDED)
+# 1. KP ASTROLOGY (DYNAMIC TIMER & MARKET TIMEZONE)
 # ==========================================
 swe.set_sid_mode(swe.SIDM_KRISHNAMURTI)
 
-def get_kp_lords(longitude):
+def get_kp_lords(longitude, tz_str='Asia/Kolkata'):
     lords = ["Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury"]
     dasha_years = [7, 20, 6, 10, 7, 18, 16, 19, 17]
     nak_length = 13.0 + (1.0 / 3.0)
@@ -37,35 +38,61 @@ def get_kp_lords(longitude):
         if passed_deg + sl_share >= deg_in_nak:
             sl = lords[current_sl_idx]
             deg_used = deg_in_nak - passed_deg
-            sl_progress = int((deg_used / sl_share) * 100) # কতটা সাব-লর্ড পেরিয়েছে তার %
-            deg_remaining = sl_share - deg_used # কত ডিগ্রি বাকি আছে
+            sl_progress = int((deg_used / sl_share) * 100) 
+            deg_remaining = sl_share - deg_used 
             break
         passed_deg += sl_share
         current_sl_idx = (current_sl_idx + 1) % 9
+
+    # --- পরবর্তী ৩টি সিগন্যাল (মার্কেটের নিজস্ব লোকাল টাইম জোন অনুযায়ী) ---
+    upcoming = []
+    accumulated_deg = deg_remaining
+    market_tz = pytz.timezone(tz_str)
+    
+    for i in range(1, 4):
+        next_idx = (current_sl_idx + i) % 9
+        next_sl = lords[next_idx]
         
-    return nl, sl, sl_progress, deg_remaining
+        start_time_unix = int(time.time() + (accumulated_deg * 240))
+        # টাইম জোন কনভার্শন
+        market_time = datetime.utcfromtimestamp(start_time_unix).replace(tzinfo=pytz.utc).astimezone(market_tz)
+        time_str = market_time.strftime("%I:%M %p") # 12-hour format
+        
+        signal = "SELL" if next_sl in ["Saturn", "Rahu", "Ketu"] else "BUY"
+        
+        upcoming.append({
+            "sl": next_sl,
+            "signal": signal,
+            "market_time": time_str
+        })
+        
+        next_sl_share = (dasha_years[next_idx] / 120.0) * nak_length
+        accumulated_deg += next_sl_share
+        
+    return nl, sl, sl_progress, deg_remaining, upcoming
 
 def get_market_location(market):
+    # এখানে ল্যাটিচিউড, লঙ্গিচিউডের সাথে টাইমজোন (tz) যুক্ত করা হলো
     locations = {
-        'CRUDE': {'lat': 40.7128, 'lon': -74.0060, 'loc_name': 'New York (NYMEX)'},
-        'GOLD': {'lat': 40.7128, 'lon': -74.0060, 'loc_name': 'New York (COMEX)'},
-        'EURUSD': {'lat': 51.5074, 'lon': -0.1278, 'loc_name': 'London (Forex)'}
+        'CRUDE': {'lat': 40.7128, 'lon': -74.0060, 'loc_name': 'New York (NYMEX)', 'tz': 'America/New_York'},
+        'GOLD': {'lat': 40.7128, 'lon': -74.0060, 'loc_name': 'New York (COMEX)', 'tz': 'America/New_York'},
+        'EURUSD': {'lat': 51.5074, 'lon': -0.1278, 'loc_name': 'London (Forex)', 'tz': 'Europe/London'}
     }
-    return locations.get(market, {'lat': 19.0760, 'lon': 72.8777, 'loc_name': 'Mumbai (NSE/MCX)'})
+    return locations.get(market, {'lat': 19.0760, 'lon': 72.8777, 'loc_name': 'Mumbai (NSE/MCX)', 'tz': 'Asia/Kolkata'})
 
-def get_realtime_astro(lat, lon):
+def get_realtime_astro(lat, lon, tz_str):
     now_utc = datetime.utcnow()
     hour_utc = now_utc.hour + now_utc.minute / 60.0 + now_utc.second / 3600.0
     jd_utc = swe.julday(now_utc.year, now_utc.month, now_utc.day, hour_utc)
     flags = swe.FLG_SIDEREAL | swe.FLG_SPEED
 
     moon_pos, _ = swe.calc_ut(jd_utc, swe.MOON, flags)
-    moon_nl, moon_sl, _, _ = get_kp_lords(moon_pos[0])
+    moon_nl, moon_sl, _, _, _ = get_kp_lords(moon_pos[0], tz_str)
 
     cusps, ascmc = swe.houses_ex(jd_utc, lat, lon, b'P', flags)
-    lagna_nl, lagna_sl, lagna_prog, lagna_rem = get_kp_lords(ascmc[0])
+    lagna_nl, lagna_sl, lagna_prog, lagna_rem, lagna_upcoming = get_kp_lords(ascmc[0], tz_str)
 
-    return lagna_nl, lagna_sl, moon_nl, moon_sl, lagna_prog, lagna_rem
+    return lagna_nl, lagna_sl, moon_nl, moon_sl, lagna_prog, lagna_rem, lagna_upcoming
 
 # ==========================================
 # 2. TECHNICAL DATA FETCH
@@ -128,9 +155,10 @@ def live_kp():
         market = request.args.get('market', 'CRUDE')
         symbol = get_market_symbol(market)
         location = get_market_location(market)
+        tz_str = location.get('tz', 'Asia/Kolkata')
         
         price, price_trend, vol_surge, vol_text = get_technical_data(symbol)
-        lagna_nl, lagna_sl, moon_nl, moon_sl, lagna_prog, lagna_rem = get_realtime_astro(location['lat'], location['lon'])
+        lagna_nl, lagna_sl, moon_nl, moon_sl, lagna_prog, lagna_rem, lagna_upcoming = get_realtime_astro(location['lat'], location['lon'], tz_str)
         
         moon_nl_s = "BUY" if moon_nl in ["Jupiter", "Venus", "Moon"] else "SELL"
         moon_sl_s = "BUY" if moon_sl in ["Jupiter", "Venus", "Moon"] else "SELL"
@@ -153,7 +181,6 @@ def live_kp():
         bias_text = "EXTREME BEARISH" if lagna_sl_s == "SELL" and moon_sl_s == "SELL" else "NEUTRAL"
         bias_color = "#ff1744" if "BEARISH" in bias_text else ("#00e676" if "BULLISH" in bias_text else "#ffb300")
         
-        # ডায়নামিক টাইম ক্যালকুলেশন (লগ্ন ১ ডিগ্রি ঘোরে ৪ মিনিটে)
         time_left_secs = int(lagna_rem * 240) 
         mins = time_left_secs // 60
         secs = time_left_secs % 60
@@ -176,6 +203,7 @@ def live_kp():
             "time_left": time_left_str,
             "time_left_seconds": time_left_secs,
             "progress": lagna_prog,
+            "upcoming_actions": lagna_upcoming,
             
             "bias_text": bias_text,
             "bias_color": bias_color,
