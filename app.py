@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 import pytz
 import swisseph as swe
+import requests # নতুন যোগ করা হয়েছে ইয়াহুর ব্লক এড়ানোর জন্য
 
 app = Flask(__name__)
 CORS(app)
@@ -73,7 +74,15 @@ def get_market_symbol(market):
 
 def get_technical_data(symbol):
     try:
-        data = yf.download(symbol, period="2d", interval="5m", progress=False)
+        # ইয়াহুর ব্লক এড়ানোর জন্য ব্রাউজারের ছদ্মবেশ (User-Agent) তৈরি করা হলো
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        })
+        
+        # Ticker কল করার সময় session পাস করে দেওয়া হলো
+        data = yf.download(symbol, period="2d", interval="5m", progress=False, session=session)
+        
         if data is None or data.empty:
             return 0.0, "SIDEWAYS", False, "0.0x"
             
@@ -100,6 +109,7 @@ def get_technical_data(symbol):
             
         return round(close, 2), trend, vol_surge, vol_text
     except Exception as e:
+        print(f"Yahoo Data Error: {e}")
         return 0.0, "SIDEWAYS", False, "N/A"
 
 # ==========================================
